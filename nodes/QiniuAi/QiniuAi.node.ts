@@ -514,6 +514,8 @@ async function handleAgent(
         threadId?: string;
         tools?: string;
         temperature?: number;
+        imageModel?: string;
+        videoModel?: string;
         checkpointerType?: 'none' | 'memory' | 'redis' | 'postgres';
         checkpointerConnection?: string;
     };
@@ -568,7 +570,7 @@ async function handleAgent(
             },
             execute: async (args: { prompt: string }) => {
                 const createResult = await client.image.generate({
-                    model: 'kling-v2-1',
+                    model: options.imageModel || 'kling-v2-1',
                     prompt: args.prompt,
                 });
                 const result = await client.image.waitForResult(createResult);
@@ -591,7 +593,7 @@ async function handleAgent(
             },
             execute: async (args: { prompt: string }) => {
                 const task = await client.video.create({
-                    model: 'kling-video-o1',
+                    model: options.videoModel || 'kling-video-o1',
                     prompt: args.prompt,
                     duration: '5',
                     aspect_ratio: '16:9',

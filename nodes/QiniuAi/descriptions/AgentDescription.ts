@@ -182,6 +182,32 @@ export const agentFields: INodeProperties[] = [
                 description: 'Controls randomness',
             },
             {
+                displayName: 'Image Model (for Built-in Tool)',
+                name: 'imageModel',
+                type: 'options',
+                options: [
+                    { name: 'Kling V2.1', value: 'kling-v2-1' },
+                    { name: 'Kling V2', value: 'kling-v2' },
+                    { name: 'Kling V1.5', value: 'kling-v1-5' },
+                    { name: 'Gemini 3.0 Pro Image', value: 'gemini-3.0-pro-image-preview' },
+                ],
+                default: 'kling-v2-1',
+                description: 'Model to use for the generate_image built-in tool',
+            },
+            {
+                displayName: 'Video Model (for Built-in Tool)',
+                name: 'videoModel',
+                type: 'options',
+                options: [
+                    { name: 'Kling Video O1', value: 'kling-video-o1' },
+                    { name: 'Kling V2.1', value: 'kling-v2-1' },
+                    { name: 'Kling V2.5 Turbo', value: 'kling-v2-5-turbo' },
+                    { name: 'Veo 2.0 Generate', value: 'veo-2.0-generate-001' },
+                ],
+                default: 'kling-video-o1',
+                description: 'Model to use for the generate_video built-in tool',
+            },
+            {
                 displayName: 'Checkpointer Type',
                 name: 'checkpointerType',
                 type: 'options',

@@ -19,10 +19,10 @@
 |----------|-----------|-------------|
 | **Chat** | Complete | Multi-model chat completion (Qwen, Claude, Gemini, GPT, DeepSeek, etc.) |
 | **Image** | Generate, Edit | AI image generation and editing with multiple models |
-| **Video** | Generate, Get Status | Video generation with Kling, Veo, Sora models |
+| **Video** | Generate, Remix, Get Status | Video generation with Kling, Veo, Sora models |
 | **Audio** | Text-to-Speech, Speech-to-Text | TTS and ASR capabilities |
-| **Agent** | Execute | AI agent with tool calling and memory support |
-| **Tools** | Web Search, OCR | Utility tools for search and text extraction |
+| **Agent** | Execute | AI agent with built-in tools (Web Search, OCR, Image/Video Generation) and ReAct loop |
+| **Tools** | Web Search, OCR | Utility tools with advanced filters (site, time, type) |
 
 ### 📦 Installation
 
@@ -142,10 +142,10 @@ MIT License - see [LICENSE](LICENSE) for details.
 |------|-----|------|
 | **Chat（聊天）** | 文本生成 | 多模型聊天补全（通义千问、Claude、Gemini、GPT、DeepSeek 等） |
 | **Image（图像）** | 生成、编辑 | AI 图像生成和编辑 |
-| **Video（视频）** | 生成、查询状态 | 视频生成（可灵、Veo、Sora） |
+| **Video（视频）** | 生成、混剪、查询状态 | 视频生成（可灵、Veo、Sora） |
 | **Audio（音频）** | 文本转语音、语音转文本 | TTS 和 ASR 能力 |
-| **Agent（智能体）** | 执行 | 支持工具调用和记忆的 AI 智能体 |
-| **Tools（工具）** | 网络搜索、OCR | 搜索和文字提取工具 |
+| **Agent（智能体）** | 执行 | 支持内置工具（搜索、OCR、图像/视频生成）和 ReAct 循环的 AI 智能体 |
+| **Tools（工具）** | 网络搜索、OCR | 支持高级过滤器（站点、时间、类型）的工具 |
 
 ### 📦 安装
 

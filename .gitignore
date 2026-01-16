@@ -6,3 +6,14 @@ npm-debug.log*
 .env
 .env.local
 .n8n-test/
+
+# Development tools
+.agent/
+.gemini/
+.vscode/
+.idea/
+
+# Test files
+*.test.ts
+__tests__/
+coverage/
