@@ -190,4 +190,47 @@ export const imageFields: INodeProperties[] = [
             },
         ],
     },
+    // Advanced Image References
+    {
+        displayName: 'Subject Reference Images',
+        name: 'subjectImageUrls',
+        type: 'string',
+        displayOptions: {
+            show: {
+                resource: ['image'],
+                operation: ['generate'],
+            },
+        },
+        default: '',
+        placeholder: 'https://example.com/subject1.jpg, https://example.com/subject2.jpg',
+        description: 'Comma-separated URLs of subject reference images to maintain in the generated image',
+    },
+    {
+        displayName: 'Scene Reference Image',
+        name: 'sceneImageUrl',
+        type: 'string',
+        displayOptions: {
+            show: {
+                resource: ['image'],
+                operation: ['generate'],
+            },
+        },
+        default: '',
+        placeholder: 'https://example.com/scene.jpg',
+        description: 'URL of a scene reference image to use as background or environment',
+    },
+    {
+        displayName: 'Style Reference Image',
+        name: 'styleImageUrl',
+        type: 'string',
+        displayOptions: {
+            show: {
+                resource: ['image'],
+                operation: ['generate'],
+            },
+        },
+        default: '',
+        placeholder: 'https://example.com/style.jpg',
+        description: 'URL of a style reference image to transfer artistic style from',
+    },
 ];

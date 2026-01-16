@@ -260,6 +260,31 @@ async function handleImage(
         params.image_config = { image_size: options.imageSize };
     }
 
+    // Advanced image references (generate only)
+    if (operation === 'generate') {
+        const subjectImageUrls = context.getNodeParameter('subjectImageUrls', itemIndex, '') as string;
+        const sceneImageUrl = context.getNodeParameter('sceneImageUrl', itemIndex, '') as string;
+        const styleImageUrl = context.getNodeParameter('styleImageUrl', itemIndex, '') as string;
+
+        // Subject reference images
+        if (subjectImageUrls) {
+            const urls = subjectImageUrls.split(',').map(u => u.trim()).filter(u => u);
+            if (urls.length > 0) {
+                params.subject_image_list = urls.map(image => ({ image, image_type: 'subject' }));
+            }
+        }
+
+        // Scene reference image
+        if (sceneImageUrl) {
+            params.scene_image = { image: sceneImageUrl };
+        }
+
+        // Style reference image
+        if (styleImageUrl) {
+            params.style_image = { image: styleImageUrl };
+        }
+    }
+
     let result: any;
     if (operation === 'generate') {
         const createResult = await client.image.generate(params);
@@ -330,6 +355,37 @@ async function handleVideo(
         };
     }
 
+    if (operation === 'remix') {
+        const sourceVideoId = context.getNodeParameter('sourceVideoId', itemIndex) as string;
+        const remixPrompt = context.getNodeParameter('remixPrompt', itemIndex, '') as string;
+        const waitForCompletion = context.getNodeParameter('waitForCompletion', itemIndex, true) as boolean;
+        const remixOptions = context.getNodeParameter('remixOptions', itemIndex, {}) as Record<string, unknown>;
+
+        const remixParams: any = {};
+        if (remixPrompt) remixParams.prompt = remixPrompt;
+        if (remixOptions.duration) remixParams.duration = remixOptions.duration;
+        if (remixOptions.mode) remixParams.mode = remixOptions.mode;
+        if (remixOptions.negativePrompt) remixParams.negative_prompt = remixOptions.negativePrompt;
+
+        const task = await client.video.remix(sourceVideoId, remixParams);
+
+        if (waitForCompletion) {
+            const result = await client.video.waitForCompletion(task.id);
+            return {
+                id: result.id,
+                status: result.status,
+                videos: result.task_result?.videos || [],
+                _raw: result as unknown as IDataObject,
+            };
+        }
+
+        return {
+            id: task.id,
+            status: 'processing',
+            _raw: task,
+        };
+    }
+
     // Generate
     const model = context.getNodeParameter('model', itemIndex) as string;
     const prompt = context.getNodeParameter('prompt', itemIndex) as string;
@@ -377,6 +433,16 @@ async function handleVideo(
 
     if (Object.keys(frames).length > 0) {
         params.frames = frames;
+    }
+
+    // Video reference (video_list) for video-to-video generation
+    const videoReferenceUrl = context.getNodeParameter('videoReferenceUrl', itemIndex, '') as string;
+    const keepOriginalSound = context.getNodeParameter('keepOriginalSound', itemIndex, false) as boolean;
+    if (videoReferenceUrl) {
+        params.video_list = [{
+            video_url: videoReferenceUrl,
+            keep_original_sound: keepOriginalSound ? 'yes' : 'no',
+        }];
     }
 
     // Model-specific options
@@ -581,9 +647,25 @@ async function handleTools(
 
     if (operation === 'webSearch') {
         const query = context.getNodeParameter('query', itemIndex) as string;
-        // Note: maxResults option reserved for future SDK support
+        const options = context.getNodeParameter('options', itemIndex, {}) as Record<string, unknown>;
 
-        const results = await client.sys.search({ query });
+        const searchParams: {
+            query: string;
+            max_results?: number;
+            search_type?: 'web' | 'news';
+            time_filter?: 'day' | 'week' | 'month' | 'year';
+            site_filter?: string[];
+        } = { query };
+
+        if (options.maxResults) searchParams.max_results = options.maxResults as number;
+        if (options.searchType) searchParams.search_type = options.searchType as 'web' | 'news';
+        if (options.timeFilter) searchParams.time_filter = options.timeFilter as 'day' | 'week' | 'month' | 'year';
+        if (options.siteFilter) {
+            const sites = (options.siteFilter as string).split(',').map(s => s.trim()).filter(s => s);
+            if (sites.length > 0) searchParams.site_filter = sites;
+        }
+
+        const results = await client.sys.search(searchParams);
 
         return {
             results: results || [],

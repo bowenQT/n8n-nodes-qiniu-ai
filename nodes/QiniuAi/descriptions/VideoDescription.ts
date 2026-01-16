@@ -20,6 +20,12 @@ export const videoOperations: INodeProperties[] = [
                 action: 'Generate a video',
             },
             {
+                name: 'Remix',
+                value: 'remix',
+                description: 'Remix an existing video with new prompt or parameters',
+                action: 'Remix a video',
+            },
+            {
                 name: 'Get Status',
                 value: 'getStatus',
                 description: 'Get the status of a video generation task',
@@ -327,6 +333,122 @@ export const videoFields: INodeProperties[] = [
                 type: 'number',
                 default: 0,
                 description: 'Random seed for reproducible results (0 = random)',
+            },
+        ],
+    },
+    // Video Reference (video_list) for video-to-video generation
+    {
+        displayName: 'Video Reference URL',
+        name: 'videoReferenceUrl',
+        type: 'string',
+        displayOptions: {
+            show: {
+                resource: ['video'],
+                operation: ['generate'],
+            },
+        },
+        default: '',
+        placeholder: 'https://example.com/reference-video.mp4',
+        description: 'URL of a reference video for video-to-video generation',
+    },
+    {
+        displayName: 'Keep Original Sound',
+        name: 'keepOriginalSound',
+        type: 'boolean',
+        displayOptions: {
+            show: {
+                resource: ['video'],
+                operation: ['generate'],
+            },
+        },
+        default: false,
+        description: 'Whether to keep the original sound from the reference video',
+    },
+    // Remix Operation Fields
+    {
+        displayName: 'Source Video ID',
+        name: 'sourceVideoId',
+        type: 'string',
+        required: true,
+        displayOptions: {
+            show: {
+                resource: ['video'],
+                operation: ['remix'],
+            },
+        },
+        default: '',
+        description: 'The ID of the video to remix',
+    },
+    {
+        displayName: 'New Prompt',
+        name: 'remixPrompt',
+        type: 'string',
+        typeOptions: {
+            rows: 4,
+        },
+        displayOptions: {
+            show: {
+                resource: ['video'],
+                operation: ['remix'],
+            },
+        },
+        default: '',
+        description: 'New prompt to guide the remix (optional)',
+    },
+    {
+        displayName: 'Wait for Completion',
+        name: 'waitForCompletion',
+        type: 'boolean',
+        displayOptions: {
+            show: {
+                resource: ['video'],
+                operation: ['remix'],
+            },
+        },
+        default: true,
+        description: 'Whether to wait for the remix to complete before returning',
+    },
+    {
+        displayName: 'Remix Options',
+        name: 'remixOptions',
+        type: 'collection',
+        placeholder: 'Add Remix Option',
+        displayOptions: {
+            show: {
+                resource: ['video'],
+                operation: ['remix'],
+            },
+        },
+        default: {},
+        options: [
+            {
+                displayName: 'Duration',
+                name: 'duration',
+                type: 'options',
+                options: [
+                    { name: '5 seconds', value: '5' },
+                    { name: '10 seconds', value: '10' },
+                ],
+                default: '5',
+                description: 'Duration of the remixed video',
+            },
+            {
+                displayName: 'Mode',
+                name: 'mode',
+                type: 'options',
+                options: [
+                    { name: 'Standard', value: 'std' },
+                    { name: 'Professional', value: 'pro' },
+                ],
+                default: 'std',
+                description: 'Generation quality mode',
+            },
+            {
+                displayName: 'Negative Prompt',
+                name: 'negativePrompt',
+                type: 'string',
+                default: '',
+                description: 'What to avoid in the video',
             },
         ],
     },
