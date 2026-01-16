@@ -5,6 +5,7 @@ import {
     INodeTypeDescription,
     NodeOperationError,
     IDataObject,
+    IBinaryKeyData,
 } from 'n8n-workflow';
 
 import { QiniuAI, generateTextWithGraph, APIError } from '@bowenqt/qiniu-ai-sdk';
@@ -115,7 +116,14 @@ export class QiniuAi implements INodeType {
                 if (resource === 'chat') {
                     result = await handleChat(this, client, i);
                 } else if (resource === 'image') {
-                    result = await handleImage(this, client, i);
+                    // Image needs special handling for binary output
+                    const imageResult = await handleImage(this, client, i);
+                    returnData.push({
+                        json: imageResult.json,
+                        binary: imageResult.binary,
+                        pairedItem: { item: i },
+                    });
+                    continue;
                 } else if (resource === 'video') {
                     result = await handleVideo(this, client, i);
                 } else if (resource === 'agent') {
@@ -215,12 +223,12 @@ async function handleChat(
     };
 }
 
-// Image handler
+// Image handler - returns { json, binary } for proper n8n binary data handling
 async function handleImage(
     context: IExecuteFunctions,
     client: QiniuAI,
     itemIndex: number
-): Promise<IDataObject> {
+): Promise<{ json: IDataObject; binary?: IBinaryKeyData }> {
     const operation = context.getNodeParameter('operation', itemIndex) as string;
     const model = context.getNodeParameter('model', itemIndex) as string;
     const prompt = context.getNodeParameter('prompt', itemIndex) as string;
@@ -264,17 +272,41 @@ async function handleImage(
         result = await client.image.edit(params);
     }
 
-    // Normalize output
+    // Build binary data from base64 images
+    const binary: IBinaryKeyData = {};
+    const images: any[] = [];
+
+    if (result.data && Array.isArray(result.data)) {
+        for (let idx = 0; idx < result.data.length; idx++) {
+            const img = result.data[idx];
+            images.push({
+                url: img.url || undefined,
+                index: img.index,
+            });
+
+            // Convert base64 to binary data for downstream usage
+            if (img.b64_json) {
+                const buffer = Buffer.from(img.b64_json, 'base64');
+                const binaryKey = idx === 0 ? 'data' : `data_${idx}`;
+                binary[binaryKey] = await context.helpers.prepareBinaryData(
+                    buffer,
+                    `image_${idx}.${result.output_format || 'png'}`,
+                    `image/${result.output_format || 'png'}`
+                );
+            }
+        }
+    }
+
     return {
-        images: result.data?.map((img: any) => ({
-            url: img.url || undefined,
-            b64_json: img.b64_json || undefined,
-            index: img.index,
-        })) || [],
-        status: result.status || 'unknown',
-        taskId: result.task_id,
-        isSync: result.isSync,
-        _raw: result,
+        json: {
+            images,
+            status: result.status || 'unknown',
+            taskId: result.task_id,
+            isSync: result.isSync,
+            imageCount: images.length,
+            _raw: result,
+        },
+        binary: Object.keys(binary).length > 0 ? binary : undefined,
     };
 }
 
@@ -303,21 +335,48 @@ async function handleVideo(
     const prompt = context.getNodeParameter('prompt', itemIndex) as string;
     const waitForCompletion = context.getNodeParameter('waitForCompletion', itemIndex, true) as boolean;
     const firstFrameUrl = context.getNodeParameter('firstFrameUrl', itemIndex, '') as string;
+    const firstFrameBinaryProperty = context.getNodeParameter('firstFrameBinaryProperty', itemIndex, '') as string;
     const lastFrameUrl = context.getNodeParameter('lastFrameUrl', itemIndex, '') as string;
+    const lastFrameBinaryProperty = context.getNodeParameter('lastFrameBinaryProperty', itemIndex, '') as string;
+    const aspectRatio = context.getNodeParameter('aspectRatio', itemIndex, '16:9') as string;
     const options = context.getNodeParameter('options', itemIndex, {}) as Record<string, unknown>;
 
     const params: any = {
         model,
         prompt,
         negative_prompt: options.negativePrompt,
-        aspect_ratio: options.aspectRatio,
+        aspect_ratio: aspectRatio,
     };
 
-    // Frame control
-    if (firstFrameUrl || lastFrameUrl) {
-        params.frames = {};
-        if (firstFrameUrl) params.frames.first = { url: firstFrameUrl };
-        if (lastFrameUrl) params.frames.last = { url: lastFrameUrl };
+    // Frame control - support both URL and Binary Data
+    const frames: any = {};
+
+    // First frame
+    if (firstFrameUrl) {
+        frames.first = { url: firstFrameUrl };
+    } else if (firstFrameBinaryProperty) {
+        try {
+            const buffer = await context.helpers.getBinaryDataBuffer(itemIndex, firstFrameBinaryProperty);
+            frames.first = { base64: buffer.toString('base64') };
+        } catch {
+            // Binary data not found, skip
+        }
+    }
+
+    // Last frame
+    if (lastFrameUrl) {
+        frames.last = { url: lastFrameUrl };
+    } else if (lastFrameBinaryProperty) {
+        try {
+            const buffer = await context.helpers.getBinaryDataBuffer(itemIndex, lastFrameBinaryProperty);
+            frames.last = { base64: buffer.toString('base64') };
+        } catch {
+            // Binary data not found, skip
+        }
+    }
+
+    if (Object.keys(frames).length > 0) {
+        params.frames = frames;
     }
 
     // Model-specific options

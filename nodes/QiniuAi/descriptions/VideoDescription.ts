@@ -106,7 +106,21 @@ export const videoFields: INodeProperties[] = [
             },
         },
         default: '',
-        description: 'URL of the first frame image (optional)',
+        description: 'URL of the first frame image. Leave empty to use binary data from previous node.',
+    },
+    {
+        displayName: 'First Frame Binary Property',
+        name: 'firstFrameBinaryProperty',
+        type: 'string',
+        displayOptions: {
+            show: {
+                resource: ['video'],
+                operation: ['generate'],
+            },
+        },
+        default: '',
+        placeholder: 'data',
+        description: 'Binary property name containing the first frame image (from Image node output)',
     },
     {
         displayName: 'Last Frame Image URL',
@@ -119,7 +133,37 @@ export const videoFields: INodeProperties[] = [
             },
         },
         default: '',
-        description: 'URL of the last frame image (optional)',
+        description: 'URL of the last frame image. Leave empty to use binary data from previous node.',
+    },
+    {
+        displayName: 'Last Frame Binary Property',
+        name: 'lastFrameBinaryProperty',
+        type: 'string',
+        displayOptions: {
+            show: {
+                resource: ['video'],
+                operation: ['generate'],
+            },
+        },
+        default: '',
+        placeholder: 'data_1',
+        description: 'Binary property name containing the last frame image (from Image node output)',
+    },
+    // Aspect Ratio (required when no first frame)
+    {
+        displayName: 'Aspect Ratio',
+        name: 'aspectRatio',
+        type: 'options',
+        required: true,
+        displayOptions: {
+            show: {
+                resource: ['video'],
+                operation: ['generate'],
+            },
+        },
+        options: VIDEO_ASPECT_RATIO_OPTIONS,
+        default: '16:9',
+        description: 'Aspect ratio of the generated video (required when no first frame image)',
     },
     // Common Options
     {
@@ -135,14 +179,6 @@ export const videoFields: INodeProperties[] = [
         },
         default: {},
         options: [
-            {
-                displayName: 'Aspect Ratio',
-                name: 'aspectRatio',
-                type: 'options',
-                options: VIDEO_ASPECT_RATIO_OPTIONS,
-                default: '16:9',
-                description: 'Aspect ratio of the generated video',
-            },
             {
                 displayName: 'Negative Prompt',
                 name: 'negativePrompt',
