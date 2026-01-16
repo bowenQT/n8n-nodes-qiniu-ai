@@ -382,14 +382,29 @@ async function handleVideo(
     // Model-specific options
     if (model.includes('kling')) {
         const klingOptions = context.getNodeParameter('klingOptions', itemIndex, {}) as Record<string, unknown>;
-        if (klingOptions.duration) params.duration = klingOptions.duration;
+        // Duration is required for Kling - default to 5 seconds
+        params.duration = klingOptions.duration || '5';
         if (klingOptions.mode) params.mode = klingOptions.mode;
         if (klingOptions.cfgScale) params.cfg_scale = klingOptions.cfgScale;
-        if (klingOptions.size) params.size = klingOptions.size;
+
+        // Use size from options, or derive from aspect_ratio (workaround for SDK bug)
+        if (klingOptions.size) {
+            params.size = klingOptions.size;
+        } else {
+            // Map aspect_ratio to default size for Kling API
+            const sizeMap: Record<string, string> = {
+                '16:9': '1920:1080',
+                '9:16': '1080:1920',
+                '1:1': '1080:1080',
+            };
+            params.size = sizeMap[aspectRatio] || '1920:1080';
+        }
     }
 
     if (model.includes('veo')) {
         const veoOptions = context.getNodeParameter('veoOptions', itemIndex, {}) as Record<string, unknown>;
+        // DurationSeconds is required for Veo - fixed at 8 seconds
+        params.duration = veoOptions.duration || 8;
         if (veoOptions.generateAudio !== undefined) params.generate_audio = veoOptions.generateAudio;
         if (veoOptions.resolution) params.resolution = veoOptions.resolution;
         if (veoOptions.sampleCount) params.sample_count = veoOptions.sampleCount;
@@ -581,19 +596,22 @@ async function handleTools(
         const imageUrl = context.getNodeParameter('imageUrl', itemIndex, '') as string;
         const binaryPropertyName = context.getNodeParameter('binaryPropertyName', itemIndex, 'data') as string;
 
-        let imageData: string;
+        let ocrParams: { url?: string; image?: string };
 
         if (imageUrl) {
-            imageData = imageUrl;
+            // Use URL directly
+            ocrParams = { url: imageUrl };
         } else {
-            // Get from binary
+            // Get from binary and create data URL
+            const binaryData = context.helpers.assertBinaryData(itemIndex, binaryPropertyName);
             const buffer = await context.helpers.getBinaryDataBuffer(itemIndex, binaryPropertyName);
-            imageData = buffer.toString('base64');
+            const mimeType = binaryData.mimeType || 'image/png';
+            const base64Data = buffer.toString('base64');
+            // Format: data:image/png;base64,<base64_data>
+            ocrParams = { image: `data:${mimeType};base64,${base64Data}` };
         }
 
-        const result = await client.ocr.detect({
-            image: imageData,
-        });
+        const result = await client.ocr.detect(ocrParams);
 
         return {
             text: result.text || '',

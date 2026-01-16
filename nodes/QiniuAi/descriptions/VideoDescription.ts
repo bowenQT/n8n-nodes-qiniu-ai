@@ -272,6 +272,16 @@ export const videoFields: INodeProperties[] = [
         default: {},
         options: [
             {
+                displayName: 'Duration (seconds)',
+                name: 'duration',
+                type: 'options',
+                options: [
+                    { name: '8 seconds', value: 8 },
+                ],
+                default: 8,
+                description: 'Video duration in seconds (Veo only supports 8 seconds)',
+            },
+            {
                 displayName: 'Generate Audio',
                 name: 'generateAudio',
                 type: 'boolean',
