@@ -17,3 +17,6 @@ npm-debug.log*
 *.test.ts
 __tests__/
 coverage/
+
+# Documentation (internal)
+docs/

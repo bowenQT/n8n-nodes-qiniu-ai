@@ -8,7 +8,7 @@ import {
     IBinaryKeyData,
 } from 'n8n-workflow';
 
-import { QiniuAI, generateTextWithGraph, APIError } from '@bowenqt/qiniu-ai-sdk';
+import { QiniuAI, generateTextWithGraph, APIError, MemoryCheckpointer, Checkpointer } from '@bowenqt/qiniu-ai-sdk';
 
 import { chatOperations, chatFields } from './descriptions/ChatDescription';
 import { imageOperations, imageFields } from './descriptions/ImageDescription';
@@ -639,18 +639,28 @@ async function handleAgent(
     const hasTools = Object.keys(toolsRecord).length > 0;
 
     // Initialize Checkpointer if configured
-    // Note: Checkpointer integration requires AgentGraph directly, not generateTextWithGraph
-    // This is a placeholder for future full implementation
+    let checkpointer: Checkpointer | undefined;
     let checkpointerInfo: string | null = null;
+
     if (options.checkpointerType && options.checkpointerType !== 'none') {
         if (options.checkpointerType === 'memory') {
+            // Use MemoryCheckpointer for in-memory state persistence
+            checkpointer = new MemoryCheckpointer({ maxItems: 100 });
             checkpointerInfo = 'memory';
         } else if (options.checkpointerType === 'redis') {
+            // Redis requires ioredis client - placeholder for future implementation
+            // Users need to provide connection string
             checkpointerInfo = `redis:${options.checkpointerConnection || 'not-configured'}`;
+            // TODO: Implement RedisCheckpointer when ioredis is available
         } else if (options.checkpointerType === 'postgres') {
+            // PostgreSQL requires pg pool - placeholder for future implementation
             checkpointerInfo = `postgres:${options.checkpointerConnection || 'not-configured'}`;
+            // TODO: Implement PostgresCheckpointer when pg is available
         }
     }
+
+    // Generate threadId if not provided but checkpointer is enabled
+    const threadId = options.threadId || (checkpointer ? `thread-${Date.now()}` : undefined);
 
     const result = await generateTextWithGraph({
         client,
@@ -661,6 +671,10 @@ async function handleAgent(
         maxSteps: options.maxSteps || 10,
         temperature: options.temperature,
         tools: hasTools && autoExecuteTools ? toolsRecord : undefined,
+        // Checkpointer integration (SDK v0.14.0+)
+        checkpointer,
+        threadId,
+        resumeFromCheckpoint: true,
     });
 
     return {
@@ -674,7 +688,7 @@ async function handleAgent(
             text: step.text,
         })) || [],
         toolsExecuted: result.steps?.filter((s: any) => s.type === 'tool_call').length || 0,
-        threadId: options.threadId || null,
+        threadId: threadId || null,
         checkpointer: checkpointerInfo,
         usage: result.usage
             ? {
