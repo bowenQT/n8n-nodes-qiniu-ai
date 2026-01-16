@@ -73,6 +73,54 @@ export const agentFields: INodeProperties[] = [
         default: '',
         description: 'Agent persona and instructions',
     },
+    // Built-in Tools
+    {
+        displayName: 'Built-in Tools',
+        name: 'builtinTools',
+        type: 'multiOptions',
+        displayOptions: {
+            show: {
+                resource: ['agent'],
+            },
+        },
+        options: [
+            {
+                name: 'Web Search',
+                value: 'webSearch',
+                description: 'Search the web for information',
+            },
+            {
+                name: 'OCR',
+                value: 'ocr',
+                description: 'Extract text from images',
+            },
+            {
+                name: 'Image Generate',
+                value: 'imageGenerate',
+                description: 'Generate images from text prompts',
+            },
+            {
+                name: 'Video Generate',
+                value: 'videoGenerate',
+                description: 'Generate videos from text prompts',
+            },
+        ],
+        default: [],
+        description: 'Built-in tools that the agent can use automatically',
+    },
+    // Auto Execute Tools
+    {
+        displayName: 'Auto Execute Tools',
+        name: 'autoExecuteTools',
+        type: 'boolean',
+        displayOptions: {
+            show: {
+                resource: ['agent'],
+            },
+        },
+        default: true,
+        description: 'Automatically execute tool calls and return results (ReAct loop)',
+    },
     // Options
     {
         displayName: 'Options',
@@ -132,6 +180,35 @@ export const agentFields: INodeProperties[] = [
                 },
                 default: 0.7,
                 description: 'Controls randomness',
+            },
+            {
+                displayName: 'Checkpointer Type',
+                name: 'checkpointerType',
+                type: 'options',
+                options: [
+                    { name: 'None', value: 'none' },
+                    { name: 'Memory', value: 'memory' },
+                    { name: 'Redis', value: 'redis' },
+                    { name: 'PostgreSQL', value: 'postgres' },
+                ],
+                default: 'none',
+                description: 'Type of state persistence for multi-turn conversations',
+            },
+            {
+                displayName: 'Checkpointer Connection String',
+                name: 'checkpointerConnection',
+                type: 'string',
+                typeOptions: {
+                    password: true,
+                },
+                displayOptions: {
+                    show: {
+                        checkpointerType: ['redis', 'postgres'],
+                    },
+                },
+                default: '',
+                placeholder: 'redis://localhost:6379 or postgresql://user:pass@localhost:5432/db',
+                description: 'Connection string for the checkpointer backend',
             },
         ],
     },

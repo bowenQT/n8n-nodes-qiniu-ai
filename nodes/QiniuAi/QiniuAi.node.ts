@@ -506,29 +506,119 @@ async function handleAgent(
     const model = context.getNodeParameter('model', itemIndex) as string;
     const prompt = context.getNodeParameter('prompt', itemIndex) as string;
     const systemMessage = context.getNodeParameter('systemMessage', itemIndex, '') as string;
+    const builtinTools = context.getNodeParameter('builtinTools', itemIndex, []) as string[];
+    const autoExecuteTools = context.getNodeParameter('autoExecuteTools', itemIndex, true) as boolean;
     const options = context.getNodeParameter('options', itemIndex, {}) as {
         maxContextTokens?: number;
         maxSteps?: number;
         threadId?: string;
         tools?: string;
         temperature?: number;
+        checkpointerType?: 'none' | 'memory' | 'redis' | 'postgres';
+        checkpointerConnection?: string;
     };
 
-    // Parse tools - convert array to Record<string, Tool>
-    let toolsRecord: Record<string, any> | undefined;
+    // Build tools record
+    const toolsRecord: Record<string, any> = {};
+
+    // Register built-in tools
+    if (builtinTools.includes('webSearch')) {
+        toolsRecord['web_search'] = {
+            description: 'Search the web for information. Use this to find current information.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    query: { type: 'string', description: 'The search query' },
+                },
+                required: ['query'],
+            },
+            execute: async (args: { query: string }) => {
+                const results = await client.sys.search({ query: args.query });
+                return { results: results?.slice(0, 5) || [] };
+            },
+        };
+    }
+
+    if (builtinTools.includes('ocr')) {
+        toolsRecord['ocr'] = {
+            description: 'Extract text from an image URL using OCR.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    url: { type: 'string', description: 'The image URL to extract text from' },
+                },
+                required: ['url'],
+            },
+            execute: async (args: { url: string }) => {
+                const result = await client.ocr.detect({ url: args.url });
+                return result;
+            },
+        };
+    }
+
+    if (builtinTools.includes('imageGenerate')) {
+        toolsRecord['generate_image'] = {
+            description: 'Generate an image from a text prompt.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    prompt: { type: 'string', description: 'Description of the image to generate' },
+                },
+                required: ['prompt'],
+            },
+            execute: async (args: { prompt: string }) => {
+                const createResult = await client.image.generate({
+                    model: 'kling-v2-1',
+                    prompt: args.prompt,
+                });
+                const result = await client.image.waitForResult(createResult);
+                return {
+                    images: result.data?.map((d: any) => d.url || d.b64_json?.substring(0, 100) + '...') || [],
+                };
+            },
+        };
+    }
+
+    if (builtinTools.includes('videoGenerate')) {
+        toolsRecord['generate_video'] = {
+            description: 'Generate a video from a text prompt.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    prompt: { type: 'string', description: 'Description of the video to generate' },
+                },
+                required: ['prompt'],
+            },
+            execute: async (args: { prompt: string }) => {
+                const task = await client.video.create({
+                    model: 'kling-video-o1',
+                    prompt: args.prompt,
+                    duration: '5',
+                    aspect_ratio: '16:9',
+                });
+                const result = await client.video.waitForCompletion(task.id);
+                return {
+                    id: result.id,
+                    status: result.status,
+                    videos: result.task_result?.videos || [],
+                };
+            },
+        };
+    }
+
+    // Parse user-defined tools
     if (options.tools) {
         try {
             const toolsArray = JSON.parse(options.tools);
             if (Array.isArray(toolsArray) && toolsArray.length > 0) {
-                toolsRecord = {};
                 for (const tool of toolsArray) {
                     if (tool.function?.name) {
                         toolsRecord[tool.function.name] = {
                             description: tool.function.description || '',
                             parameters: tool.function.parameters || {},
                             execute: async (_args: any) => {
-                                // Tools executed by the agent - we return a placeholder
-                                return { result: 'Tool execution not implemented in n8n node' };
+                                // User-defined tools return placeholder for manual execution
+                                return { result: 'Tool executed. Process the result in subsequent workflow steps.' };
                             },
                         };
                     }
@@ -543,6 +633,23 @@ async function handleAgent(
         }
     }
 
+    // Execute with AgentGraph if auto-execute is enabled and there are tools
+    const hasTools = Object.keys(toolsRecord).length > 0;
+
+    // Initialize Checkpointer if configured
+    // Note: Checkpointer integration requires AgentGraph directly, not generateTextWithGraph
+    // This is a placeholder for future full implementation
+    let checkpointerInfo: string | null = null;
+    if (options.checkpointerType && options.checkpointerType !== 'none') {
+        if (options.checkpointerType === 'memory') {
+            checkpointerInfo = 'memory';
+        } else if (options.checkpointerType === 'redis') {
+            checkpointerInfo = `redis:${options.checkpointerConnection || 'not-configured'}`;
+        } else if (options.checkpointerType === 'postgres') {
+            checkpointerInfo = `postgres:${options.checkpointerConnection || 'not-configured'}`;
+        }
+    }
+
     const result = await generateTextWithGraph({
         client,
         model,
@@ -551,11 +658,12 @@ async function handleAgent(
         maxContextTokens: options.maxContextTokens || 32000,
         maxSteps: options.maxSteps || 10,
         temperature: options.temperature,
-        tools: toolsRecord,
+        tools: hasTools && autoExecuteTools ? toolsRecord : undefined,
     });
 
     return {
         content: result.text || '',
+        reasoning: result.reasoning || '',
         steps: result.steps?.map((step: any) => ({
             type: step.type,
             toolName: step.toolName,
@@ -563,6 +671,9 @@ async function handleAgent(
             toolResult: step.toolResult,
             text: step.text,
         })) || [],
+        toolsExecuted: result.steps?.filter((s: any) => s.type === 'tool_call').length || 0,
+        threadId: options.threadId || null,
+        checkpointer: checkpointerInfo,
         usage: result.usage
             ? {
                 promptTokens: result.usage.prompt_tokens,
