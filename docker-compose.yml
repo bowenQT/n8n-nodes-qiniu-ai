@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  n8n:
+    image: n8nio/n8n:latest
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=http://localhost:5678/
+      - GENERIC_TIMEZONE=Asia/Shanghai
+      - N8N_CUSTOM_EXTENSIONS=/home/node/.n8n/custom
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./dist:/home/node/.n8n/custom/node_modules/n8n-nodes-qiniu-ai/dist:ro
+      - ./package.json:/home/node/.n8n/custom/node_modules/n8n-nodes-qiniu-ai/package.json:ro
+      - ./node_modules/@bowenqt/qiniu-ai-sdk:/home/node/.n8n/custom/node_modules/n8n-nodes-qiniu-ai/node_modules/@bowenqt/qiniu-ai-sdk:ro
+
+volumes:
+  n8n_data:
