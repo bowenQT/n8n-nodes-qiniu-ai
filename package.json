@@ -1,0 +1,56 @@
+{
+    "name": "n8n-nodes-qiniu-ai",
+    "version": "0.1.0",
+    "description": "n8n nodes for Qiniu AI SDK - Chat, Image, Video, Audio, OCR, Agent and more",
+    "keywords": [
+        "n8n-community-node-package",
+        "qiniu",
+        "ai",
+        "llm",
+        "image-generation",
+        "video-generation"
+    ],
+    "license": "MIT",
+    "author": {
+        "name": "Bowen",
+        "email": "aidoudoulong123@gmail.com"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/bowenQT/n8n-nodes-qiniu-ai"
+    },
+    "main": "dist/index.js",
+    "scripts": {
+        "build": "tsc && gulp build:icons",
+        "dev": "tsc --watch",
+        "lint": "eslint nodes credentials --ext .ts",
+        "prepublishOnly": "npm run build"
+    },
+    "files": [
+        "dist"
+    ],
+    "n8n": {
+        "n8nNodesApiVersion": 1,
+        "credentials": [
+            "dist/credentials/QiniuAiApi.credentials.js"
+        ],
+        "nodes": [
+            "dist/nodes/QiniuAi/QiniuAi.node.js"
+        ]
+    },
+    "dependencies": {
+        "@bowenqt/qiniu-ai-sdk": "^0.13.0"
+    },
+    "devDependencies": {
+        "@types/node": "^20.0.0",
+        "@typescript-eslint/eslint-plugin": "^6.0.0",
+        "@typescript-eslint/parser": "^6.0.0",
+        "eslint": "^8.0.0",
+        "gulp": "^4.0.2",
+        "n8n-workflow": "^1.0.0",
+        "typescript": "^5.0.0"
+    },
+    "peerDependencies": {
+        "n8n-workflow": "*"
+    }
+}

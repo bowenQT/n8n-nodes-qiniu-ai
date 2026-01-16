@@ -1,0 +1,15 @@
+{
+    "node": "n8n-nodes-base.qiniuAi",
+    "nodeVersion": "1.0",
+    "codexVersion": "1.0",
+    "categories": [
+        "AI"
+    ],
+    "resources": {
+        "primaryDocumentation": [
+            {
+                "url": "https://github.com/bowenQT/qiniu-ai-sdk"
+            }
+        ]
+    }
+}
