@@ -13,6 +13,8 @@ import { chatOperations, chatFields } from './descriptions/ChatDescription';
 import { imageOperations, imageFields } from './descriptions/ImageDescription';
 import { videoOperations, videoFields } from './descriptions/VideoDescription';
 import { agentOperations, agentFields } from './descriptions/AgentDescription';
+import { audioOperations, audioFields } from './descriptions/AudioDescription';
+import { toolsOperations, toolsFields } from './descriptions/ToolsDescription';
 
 export class QiniuAi implements INodeType {
     description: INodeTypeDescription = {
@@ -62,6 +64,16 @@ export class QiniuAi implements INodeType {
                         value: 'agent',
                         description: 'Run AI agent with tools and memory',
                     },
+                    {
+                        name: 'Audio',
+                        value: 'audio',
+                        description: 'Text-to-Speech and Speech-to-Text',
+                    },
+                    {
+                        name: 'Tools',
+                        value: 'tools',
+                        description: 'Web Search, OCR and more',
+                    },
                 ],
                 default: 'chat',
             },
@@ -74,6 +86,10 @@ export class QiniuAi implements INodeType {
             ...videoFields,
             ...agentOperations,
             ...agentFields,
+            ...audioOperations,
+            ...audioFields,
+            ...toolsOperations,
+            ...toolsFields,
         ],
     };
 
@@ -104,6 +120,10 @@ export class QiniuAi implements INodeType {
                     result = await handleVideo(this, client, i);
                 } else if (resource === 'agent') {
                     result = await handleAgent(this, client, i);
+                } else if (resource === 'audio') {
+                    result = await handleAudio(this, client, i);
+                } else if (resource === 'tools') {
+                    result = await handleTools(this, client, i);
                 } else {
                     throw new NodeOperationError(
                         this.getNode(),
@@ -412,4 +432,122 @@ async function handleAgent(
             : null,
         _raw: result as unknown as IDataObject,
     };
+}
+
+// Audio handler
+async function handleAudio(
+    context: IExecuteFunctions,
+    client: QiniuAI,
+    itemIndex: number
+): Promise<IDataObject> {
+    const operation = context.getNodeParameter('operation', itemIndex) as string;
+
+    if (operation === 'textToSpeech') {
+        const text = context.getNodeParameter('text', itemIndex) as string;
+        const voice = context.getNodeParameter('voice', itemIndex) as string;
+        const options = context.getNodeParameter('options', itemIndex, {}) as {
+            encoding?: string;
+            speedRatio?: number;
+            volume?: number;
+        };
+
+        const result = await client.tts.synthesize({
+            text,
+            voice_type: voice,
+            encoding: options.encoding as any,
+            speed_ratio: options.speedRatio,
+            volume: options.volume,
+        });
+
+        // Return audio as binary data
+        return {
+            audio: result.audio,
+            duration: result.duration,
+            _raw: result as unknown as IDataObject,
+        };
+    }
+
+    if (operation === 'speechToText') {
+        const binaryPropertyName = context.getNodeParameter('binaryPropertyName', itemIndex) as string;
+        const audioFormat = context.getNodeParameter('audioFormat', itemIndex) as string;
+
+        // Get binary data
+        const binaryData = context.helpers.assertBinaryData(itemIndex, binaryPropertyName);
+        const buffer = await context.helpers.getBinaryDataBuffer(itemIndex, binaryPropertyName);
+        const base64Audio = buffer.toString('base64');
+
+        const result = await client.asr.transcribe({
+            audio: {
+                format: audioFormat as any,
+                data: base64Audio,
+            },
+        });
+
+        return {
+            text: result.text || '',
+            words: result.words || [],
+            _raw: result as unknown as IDataObject,
+        };
+    }
+
+    throw new NodeOperationError(
+        context.getNode(),
+        `Unknown audio operation: ${operation}`,
+        { itemIndex }
+    );
+}
+
+// Tools handler
+async function handleTools(
+    context: IExecuteFunctions,
+    client: QiniuAI,
+    itemIndex: number
+): Promise<IDataObject> {
+    const operation = context.getNodeParameter('operation', itemIndex) as string;
+
+    if (operation === 'webSearch') {
+        const query = context.getNodeParameter('query', itemIndex) as string;
+        const options = context.getNodeParameter('options', itemIndex, {}) as {
+            maxResults?: number;
+        };
+
+        const results = await client.sys.search({ query });
+
+        return {
+            results: results || [],
+            query,
+            _raw: results as unknown as IDataObject,
+        };
+    }
+
+    if (operation === 'ocr') {
+        const imageUrl = context.getNodeParameter('imageUrl', itemIndex, '') as string;
+        const binaryPropertyName = context.getNodeParameter('binaryPropertyName', itemIndex, 'data') as string;
+
+        let imageData: string;
+
+        if (imageUrl) {
+            imageData = imageUrl;
+        } else {
+            // Get from binary
+            const buffer = await context.helpers.getBinaryDataBuffer(itemIndex, binaryPropertyName);
+            imageData = buffer.toString('base64');
+        }
+
+        const result = await client.ocr.detect({
+            image: imageData,
+        });
+
+        return {
+            text: result.text || '',
+            blocks: result.blocks || [],
+            _raw: result as unknown as IDataObject,
+        };
+    }
+
+    throw new NodeOperationError(
+        context.getNode(),
+        `Unknown tools operation: ${operation}`,
+        { itemIndex }
+    );
 }
