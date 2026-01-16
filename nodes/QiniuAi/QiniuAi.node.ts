@@ -386,7 +386,7 @@ async function handleAgent(
                         toolsRecord[tool.function.name] = {
                             description: tool.function.description || '',
                             parameters: tool.function.parameters || {},
-                            execute: async (args: any) => {
+                            execute: async (_args: any) => {
                                 // Tools executed by the agent - we return a placeholder
                                 return { result: 'Tool execution not implemented in n8n node' };
                             },
@@ -472,7 +472,7 @@ async function handleAudio(
         const audioFormat = context.getNodeParameter('audioFormat', itemIndex) as string;
 
         // Get binary data
-        const binaryData = context.helpers.assertBinaryData(itemIndex, binaryPropertyName);
+        context.helpers.assertBinaryData(itemIndex, binaryPropertyName);
         const buffer = await context.helpers.getBinaryDataBuffer(itemIndex, binaryPropertyName);
         const base64Audio = buffer.toString('base64');
 
@@ -507,9 +507,7 @@ async function handleTools(
 
     if (operation === 'webSearch') {
         const query = context.getNodeParameter('query', itemIndex) as string;
-        const options = context.getNodeParameter('options', itemIndex, {}) as {
-            maxResults?: number;
-        };
+        // Note: maxResults option reserved for future SDK support
 
         const results = await client.sys.search({ query });
 
