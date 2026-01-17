@@ -1,0 +1,181 @@
+{
+    "name": "Document Processing with OCR and AI",
+    "nodes": [
+        {
+            "parameters": {
+                "path": "process-document",
+                "httpMethod": "POST",
+                "options": {}
+            },
+            "id": "webhook",
+            "name": "Receive Document",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                250,
+                300
+            ],
+            "webhookId": "process-document"
+        },
+        {
+            "parameters": {
+                "resource": "tools",
+                "operation": "ocr",
+                "imageUrl": "={{ $json.body.imageUrl }}"
+            },
+            "id": "ocr",
+            "name": "Extract Text (OCR)",
+            "type": "n8n-nodes-qiniu-ai.qiniuAi",
+            "typeVersion": 1,
+            "position": [
+                450,
+                300
+            ],
+            "credentials": {
+                "qiniuAiApi": {
+                    "id": "YOUR_CREDENTIAL_ID",
+                    "name": "Qiniu AI API"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "resource": "chat",
+                "operation": "complete",
+                "model": "gemini-2.5-flash",
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": "You are a document analysis assistant. Extract structured information from the text and return it as JSON with the following fields: title, date, amount, parties, key_points. If a field is not found, use null."
+                    },
+                    {
+                        "role": "user",
+                        "content": "Analyze this document text and extract structured data:\n\n{{ $json.text }}"
+                    }
+                ],
+                "options": {
+                    "responseFormat": {
+                        "type": "json_object"
+                    },
+                    "temperature": 0
+                }
+            },
+            "id": "analyze",
+            "name": "Analyze Document",
+            "type": "n8n-nodes-qiniu-ai.qiniuAi",
+            "typeVersion": 1,
+            "position": [
+                650,
+                300
+            ],
+            "credentials": {
+                "qiniuAiApi": {
+                    "id": "YOUR_CREDENTIAL_ID",
+                    "name": "Qiniu AI API"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "jsCode": "const content = $input.item.json.content;\ntry {\n  return { json: JSON.parse(content) };\n} catch (e) {\n  return { json: { error: 'Failed to parse', raw: content } };\n}"
+            },
+            "id": "parse-json",
+            "name": "Parse JSON",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                850,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "respondWith": "json",
+                "responseBody": "={{ JSON.stringify($json) }}"
+            },
+            "id": "respond",
+            "name": "Return Structured Data",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1,
+            "position": [
+                1050,
+                300
+            ]
+        }
+    ],
+    "connections": {
+        "Receive Document": {
+            "main": [
+                [
+                    {
+                        "node": "Extract Text (OCR)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Extract Text (OCR)": {
+            "main": [
+                [
+                    {
+                        "node": "Analyze Document",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Analyze Document": {
+            "main": [
+                [
+                    {
+                        "node": "Parse JSON",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Parse JSON": {
+            "main": [
+                [
+                    {
+                        "node": "Return Structured Data",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "active": false,
+    "settings": {
+        "executionOrder": "v1"
+    },
+    "versionId": "1",
+    "meta": {
+        "templateId": "qiniu-ai-document-processing",
+        "description": "Process documents using OCR to extract text, then use AI to analyze and structure the data. Returns structured JSON with extracted information.",
+        "categories": [
+            "AI",
+            "Document Processing",
+            "OCR",
+            "Data Extraction"
+        ]
+    },
+    "tags": [
+        {
+            "name": "AI"
+        },
+        {
+            "name": "OCR"
+        },
+        {
+            "name": "Document Processing"
+        },
+        {
+            "name": "Qiniu"
+        }
+    ]
+}

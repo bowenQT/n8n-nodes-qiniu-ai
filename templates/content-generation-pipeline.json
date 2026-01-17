@@ -1,0 +1,195 @@
+{
+    "name": "Content Generation Pipeline",
+    "nodes": [
+        {
+            "parameters": {
+                "mode": "runOnceForAllItems"
+            },
+            "id": "manual-trigger",
+            "name": "Start",
+            "type": "n8n-nodes-base.manualTrigger",
+            "typeVersion": 1,
+            "position": [
+                250,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "values": {
+                    "string": [
+                        {
+                            "name": "prompt",
+                            "value": "A futuristic cityscape at sunset with flying cars and neon lights"
+                        }
+                    ]
+                }
+            },
+            "id": "set-prompt",
+            "name": "Set Content Prompt",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 2,
+            "position": [
+                450,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "resource": "image",
+                "operation": "generate",
+                "model": "kling-v2-1",
+                "prompt": "={{ $json.prompt }}",
+                "options": {
+                    "aspectRatio": "16:9",
+                    "waitForCompletion": true
+                }
+            },
+            "id": "generate-image",
+            "name": "Generate Image",
+            "type": "n8n-nodes-qiniu-ai.qiniuAi",
+            "typeVersion": 1,
+            "position": [
+                650,
+                300
+            ],
+            "credentials": {
+                "qiniuAiApi": {
+                    "id": "YOUR_CREDENTIAL_ID",
+                    "name": "Qiniu AI API"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "resource": "video",
+                "operation": "generate",
+                "model": "kling-video-o1",
+                "prompt": "={{ $('Set Content Prompt').item.json.prompt }}, cinematic motion, smooth camera pan",
+                "options": {
+                    "aspectRatio": "16:9",
+                    "duration": "5",
+                    "firstFrameBinaryProperty": "data",
+                    "waitForCompletion": true
+                }
+            },
+            "id": "generate-video",
+            "name": "Generate Video",
+            "type": "n8n-nodes-qiniu-ai.qiniuAi",
+            "typeVersion": 1,
+            "position": [
+                850,
+                300
+            ],
+            "credentials": {
+                "qiniuAiApi": {
+                    "id": "YOUR_CREDENTIAL_ID",
+                    "name": "Qiniu AI API"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "values": {
+                    "string": [
+                        {
+                            "name": "imageUrl",
+                            "value": "={{ $('Generate Image').item.json.images[0] }}"
+                        },
+                        {
+                            "name": "videoUrl",
+                            "value": "={{ $json.task_result.videos[0].url }}"
+                        },
+                        {
+                            "name": "status",
+                            "value": "completed"
+                        }
+                    ]
+                }
+            },
+            "id": "output",
+            "name": "Output Results",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 2,
+            "position": [
+                1050,
+                300
+            ]
+        }
+    ],
+    "connections": {
+        "Start": {
+            "main": [
+                [
+                    {
+                        "node": "Set Content Prompt",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Set Content Prompt": {
+            "main": [
+                [
+                    {
+                        "node": "Generate Image",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Generate Image": {
+            "main": [
+                [
+                    {
+                        "node": "Generate Video",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Generate Video": {
+            "main": [
+                [
+                    {
+                        "node": "Output Results",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "active": false,
+    "settings": {
+        "executionOrder": "v1"
+    },
+    "versionId": "1",
+    "meta": {
+        "templateId": "qiniu-ai-content-pipeline",
+        "description": "Generate images and videos in a pipeline. First creates an AI image, then uses it as the first frame for video generation.",
+        "categories": [
+            "AI",
+            "Content Creation",
+            "Video",
+            "Image"
+        ]
+    },
+    "tags": [
+        {
+            "name": "AI"
+        },
+        {
+            "name": "Content Creation"
+        },
+        {
+            "name": "Video"
+        },
+        {
+            "name": "Qiniu"
+        }
+    ]
+}

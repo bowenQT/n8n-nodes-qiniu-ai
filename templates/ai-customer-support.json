@@ -1,0 +1,130 @@
+{
+    "name": "AI Customer Support with Qiniu AI",
+    "nodes": [
+        {
+            "parameters": {},
+            "id": "webhook-trigger",
+            "name": "Customer Message",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                250,
+                300
+            ],
+            "webhookId": "customer-support"
+        },
+        {
+            "parameters": {
+                "sessionIdType": "customKey",
+                "sessionKey": "={{ $json.body.userId || $json.body.sessionId }}"
+            },
+            "id": "redis-memory",
+            "name": "Redis Chat Memory",
+            "type": "@n8n/n8n-nodes-langchain.memoryRedisChat",
+            "typeVersion": 1,
+            "position": [
+                450,
+                200
+            ]
+        },
+        {
+            "parameters": {
+                "resource": "agent",
+                "operation": "execute",
+                "model": "gemini-2.5-flash",
+                "prompt": "={{ $json.body.message }}",
+                "systemMessage": "You are a helpful customer support assistant. Be concise and professional. Answer questions about our products and services.",
+                "options": {
+                    "builtinTools": [
+                        "webSearch"
+                    ],
+                    "temperature": 0.7,
+                    "checkpointerType": "memory",
+                    "threadId": "={{ $json.body.userId || $json.body.sessionId }}"
+                }
+            },
+            "id": "qiniu-agent",
+            "name": "Qiniu AI Agent",
+            "type": "n8n-nodes-qiniu-ai.qiniuAi",
+            "typeVersion": 1,
+            "position": [
+                650,
+                300
+            ],
+            "credentials": {
+                "qiniuAiApi": {
+                    "id": "YOUR_CREDENTIAL_ID",
+                    "name": "Qiniu AI API"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "respondWith": "json",
+                "responseBody": "={{ JSON.stringify({ reply: $json.content, threadId: $json.threadId }) }}"
+            },
+            "id": "respond",
+            "name": "Respond to Customer",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1,
+            "position": [
+                850,
+                300
+            ]
+        }
+    ],
+    "connections": {
+        "Customer Message": {
+            "main": [
+                [
+                    {
+                        "node": "Redis Chat Memory",
+                        "type": "main",
+                        "index": 0
+                    },
+                    {
+                        "node": "Qiniu AI Agent",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Qiniu AI Agent": {
+            "main": [
+                [
+                    {
+                        "node": "Respond to Customer",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "active": false,
+    "settings": {
+        "executionOrder": "v1"
+    },
+    "versionId": "1",
+    "meta": {
+        "templateId": "qiniu-ai-customer-support",
+        "description": "AI-powered customer support workflow using Qiniu AI Agent with web search capability and Redis memory for conversation history.",
+        "categories": [
+            "AI",
+            "Customer Support",
+            "Chatbot"
+        ]
+    },
+    "tags": [
+        {
+            "name": "AI"
+        },
+        {
+            "name": "Customer Support"
+        },
+        {
+            "name": "Qiniu"
+        }
+    ]
+}

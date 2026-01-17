@@ -136,6 +136,7 @@ For conversation memory that persists across workflow executions, use n8n's buil
 
 ### 🔗 Resources
 
+- [📚 Workflow Templates](./templates/) - Ready-to-use workflow examples
 - [Qiniu AI SDK Documentation](https://github.com/bowenQT/qiniu-ai-sdk)
 - [n8n Community Nodes Guide](https://docs.n8n.io/integrations/community-nodes/)
 - [Qiniu Cloud AI Portal](https://portal.qiniu.com)
