@@ -115,6 +115,25 @@ Aspect Ratio: 16:9
 - Others: sora-2, minimax-m2, mimo-v2-flash
 </details>
 
+### 💾 Persistent Memory (Multi-turn Conversations)
+
+For conversation memory that persists across workflow executions, use n8n's built-in Memory nodes:
+
+```
+┌─────────────────────┐     ┌──────────────────┐
+│ Redis/Postgres      │────▶│ Qiniu AI Agent   │
+│ Chat Memory Node    │     │ (threadId link)  │
+└─────────────────────┘     └──────────────────┘
+```
+
+**Setup:**
+1. Add **Redis Chat Memory** or **Postgres Chat Memory** node before the Agent
+2. Configure the Memory node with your database credentials
+3. In the Qiniu AI Agent node, set the `Thread ID` to match the Memory node's `Session ID`
+4. The agent will automatically resume from previous conversation context
+
+> **Note**: The built-in `Memory` checkpointer works within a single execution. For cross-execution persistence, use n8n's native Memory nodes.
+
 ### 🔗 Resources
 
 - [Qiniu AI SDK Documentation](https://github.com/bowenQT/qiniu-ai-sdk)
@@ -237,6 +256,25 @@ npm install n8n-nodes-qiniu-ai
 - Veo: veo-3.1-generate-preview, veo-3.0-generate-preview, veo-2.0-generate-001
 - 其他: sora-2, minimax-m2, mimo-v2-flash
 </details>
+
+### 💾 持久化对话历史（多轮对话）
+
+如需跨工作流执行保持对话记忆，请使用 n8n 内置的 Memory 节点：
+
+```
+┌─────────────────────┐     ┌──────────────────┐
+│ Redis/Postgres      │────▶│ Qiniu AI Agent   │
+│ Chat Memory 节点    │     │ (threadId 关联)  │
+└─────────────────────┘     └──────────────────┘
+```
+
+**配置步骤:**
+1. 在 Agent 节点前添加 **Redis Chat Memory** 或 **Postgres Chat Memory** 节点
+2. 配置 Memory 节点的数据库连接
+3. 在 Qiniu AI Agent 节点中，将 `Thread ID` 设置为与 Memory 节点的 `Session ID` 一致
+4. Agent 将自动接续之前的对话上下文
+
+> **注意**: 内置的 `Memory` checkpointer 仅在单次执行内有效。跨执行的持久化请使用 n8n 原生 Memory 节点。
 
 ### 🔗 相关链接
 
