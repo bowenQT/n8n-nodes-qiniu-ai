@@ -722,6 +722,10 @@ async function handleAgent(
         toolsExecuted: result.steps?.filter((s: any) => s.type === 'tool_call').length || 0,
         threadId: threadId || null,
         checkpointer: checkpointerInfo,
+        parallelConfig: {
+            enabled: _enableParallel,
+            maxConcurrency: _maxConcurrency,
+        },
         usage: result.usage
             ? {
                 promptTokens: result.usage.prompt_tokens,
