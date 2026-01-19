@@ -39,7 +39,7 @@
         ]
     },
     "dependencies": {
-        "@bowenqt/qiniu-ai-sdk": "^0.14.0"
+        "@bowenqt/qiniu-ai-sdk": "^0.27.3"
     },
     "devDependencies": {
         "@types/node": "^20.0.0",
