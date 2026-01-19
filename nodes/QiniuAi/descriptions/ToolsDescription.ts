@@ -280,8 +280,9 @@ export const toolsFields: INodeProperties[] = [
         typeOptions: {
             minValue: 1,
         },
-        default: 0,
-        description: 'Total video duration (required for uniform sampling)',
+        default: '',
+        required: true,
+        description: 'Total video duration in seconds (required for uniform sampling)',
     },
     // VFrame: Output Width
     {

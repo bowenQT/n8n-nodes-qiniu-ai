@@ -254,6 +254,9 @@ export const agentFields: INodeProperties[] = [
                 displayName: 'Kodo Access Key',
                 name: 'kodoAccessKey',
                 type: 'string',
+                typeOptions: {
+                    password: true,
+                },
                 displayOptions: {
                     show: {
                         checkpointerType: ['kodo'],
@@ -288,29 +291,6 @@ export const agentFields: INodeProperties[] = [
                 },
                 default: 'n8n-threads/',
                 description: 'Object key prefix for session states',
-            },
-            {
-                displayName: 'Enable Parallel Execution',
-                name: 'enableParallel',
-                type: 'boolean',
-                default: false,
-                description: 'Allow agent to execute multiple tools in parallel',
-            },
-            {
-                displayName: 'Max Concurrency',
-                name: 'maxConcurrency',
-                type: 'number',
-                displayOptions: {
-                    show: {
-                        enableParallel: [true],
-                    },
-                },
-                typeOptions: {
-                    minValue: 1,
-                    maxValue: 10,
-                },
-                default: 3,
-                description: 'Maximum parallel tool executions',
             },
         ],
     },

@@ -31,7 +31,6 @@
   - **Image Censor**: Synchronous content safety audit (pulp, terror, politician detection)
   - **Video Censor**: Asynchronous video content moderation with job polling
   - **Video Frame Extract (VFrame)**: Extract frames from video at specific timestamps
-- **Parallel Execution**: Enable concurrent tool execution for improved throughput in batch scenarios.
 - **SDK v0.27.3**: Upgraded to the latest SDK with enhanced Agent capabilities.
 
 ### 📦 Installation
@@ -184,7 +183,6 @@ MIT License - see [LICENSE](LICENSE) for details.
   - **图片审核 (Image Censor)**：同步内容安全审核（涉黄、暴力、政治敏感检测）
   - **视频审核 (Video Censor)**：异步视频内容审核，支持任务轮询
   - **视频帧提取 (VFrame)**：从视频中提取指定时间戳的帧
-- **并行执行**：支持并发工具执行，提高批量场景的吞吐量。
 - **SDK v0.27.3**：升级至最新 SDK，增强 Agent 能力。
 
 ### 📦 安装

@@ -522,8 +522,6 @@ async function handleAgent(
         kodoAccessKey?: string;
         kodoSecretKey?: string;
         kodoPrefix?: string;
-        enableParallel?: boolean;
-        maxConcurrency?: number;
     };
 
     // Build tools record
@@ -687,9 +685,6 @@ async function handleAgent(
         }
     }
 
-    // Parallel execution config (read for future use)
-    const _enableParallel = options.enableParallel as boolean || false;
-    const _maxConcurrency = options.maxConcurrency as number || 3;
 
     // Generate threadId if not provided but checkpointer is enabled
     const threadId = options.threadId || (checkpointer ? `thread-${Date.now()}` : undefined);
@@ -722,10 +717,8 @@ async function handleAgent(
         toolsExecuted: result.steps?.filter((s: any) => s.type === 'tool_call').length || 0,
         threadId: threadId || null,
         checkpointer: checkpointerInfo,
-        parallelConfig: {
-            enabled: _enableParallel,
-            maxConcurrency: _maxConcurrency,
-        },
+        /** @deprecated Parallel execution is not supported in current SDK version */
+        parallelConfig: null,
         usage: result.usage
             ? {
                 promptTokens: result.usage.prompt_tokens,
@@ -900,11 +893,27 @@ async function handleTools(
             };
         }
 
-        // Poll for completion
+        // Poll for completion with timeout
+        const MAX_POLL_ATTEMPTS = 60; // 5 minutes with 5s interval
+        let pollAttempts = 0;
         let status = await client.censor.getVideoStatus(job.jobId);
-        while (status.status === 'WAITING' || status.status === 'DOING') {
+        while ((status.status === 'WAITING' || status.status === 'DOING') && pollAttempts < MAX_POLL_ATTEMPTS) {
             await new Promise(resolve => setTimeout(resolve, 5000));
             status = await client.censor.getVideoStatus(job.jobId);
+            pollAttempts++;
+        }
+
+        // Only timeout if status is still pending after max attempts
+        const isStillPending = status.status === 'WAITING' || status.status === 'DOING';
+        if (isStillPending && pollAttempts >= MAX_POLL_ATTEMPTS) {
+            return {
+                jobId: job.jobId,
+                status: 'timeout',
+                lastStatus: status.status,
+                message: 'Polling timed out after 5 minutes. Use jobId to check status manually.',
+                videoUrl,
+                _raw: status as unknown as IDataObject,
+            };
         }
 
         return {
