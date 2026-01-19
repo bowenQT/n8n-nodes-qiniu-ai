@@ -8,7 +8,7 @@ import {
     IBinaryKeyData,
 } from 'n8n-workflow';
 
-import { QiniuAI, generateTextWithGraph, APIError, MemoryCheckpointer, Checkpointer } from '@bowenqt/qiniu-ai-sdk';
+import { QiniuAI, generateTextWithGraph, APIError, MemoryCheckpointer, KodoCheckpointer, Checkpointer, CensorScene } from '@bowenqt/qiniu-ai-sdk';
 
 import { chatOperations, chatFields } from './descriptions/ChatDescription';
 import { imageOperations, imageFields } from './descriptions/ImageDescription';
@@ -826,6 +826,85 @@ async function handleTools(
             text: result.text || '',
             blocks: result.blocks || [],
             _raw: result as unknown as IDataObject,
+        };
+    }
+
+    if (operation === 'imageCensor') {
+        const imageUrl = context.getNodeParameter('imageUrl', itemIndex) as string;
+        const scenes = context.getNodeParameter('scenes', itemIndex) as string[];
+
+        const result = await client.censor.image({
+            uri: imageUrl,
+            scenes: scenes as CensorScene[],
+        });
+
+        return {
+            suggestion: result.suggestion,
+            scenes: result.scenes,
+            imageUrl,
+            _raw: result as unknown as IDataObject,
+        };
+    }
+
+    if (operation === 'videoCensor') {
+        const videoUrl = context.getNodeParameter('videoUrl', itemIndex) as string;
+        const scenes = context.getNodeParameter('censorScenes', itemIndex) as string[];
+        const waitForCompletion = context.getNodeParameter('waitForCompletion', itemIndex) as boolean;
+
+        const job = await client.censor.video({
+            uri: videoUrl,
+            scenes: scenes as CensorScene[],
+        });
+
+        if (!waitForCompletion) {
+            return {
+                jobId: job.jobId,
+                status: 'submitted',
+                videoUrl,
+            };
+        }
+
+        // Poll for completion
+        let status = await client.censor.getVideoStatus(job.jobId);
+        while (status.status === 'WAITING' || status.status === 'DOING') {
+            await new Promise(resolve => setTimeout(resolve, 5000));
+            status = await client.censor.getVideoStatus(job.jobId);
+        }
+
+        return {
+            jobId: job.jobId,
+            status: status.status,
+            suggestion: status.suggestion,
+            scenes: status.scenes,
+            videoUrl,
+            _raw: status as unknown as IDataObject,
+        };
+    }
+
+    if (operation === 'vframe') {
+        const videoUrl = context.getNodeParameter('videoUrl', itemIndex) as string;
+        const frameCount = context.getNodeParameter('frameCount', itemIndex) as number;
+        const videoDuration = context.getNodeParameter('videoDuration', itemIndex) as number;
+        const outputWidth = context.getNodeParameter('outputWidth', itemIndex) as number;
+
+        // Calculate uniform offsets
+        const frames: Array<{ offset: number; url: string }> = [];
+        if (videoDuration > 0 && frameCount > 0) {
+            const step = videoDuration / (frameCount + 1);
+            for (let i = 1; i <= frameCount; i++) {
+                const offset = Math.round(step * i);
+                // Build vframe URL: video?vframe/jpg/offset/{offset}/w/{width}
+                const separator = videoUrl.includes('?') ? '|' : '?';
+                const vframeUrl = `${videoUrl}${separator}vframe/jpg/offset/${offset}/w/${outputWidth}`;
+                frames.push({ offset, url: vframeUrl });
+            }
+        }
+
+        return {
+            videoUrl,
+            frameCount,
+            videoDuration,
+            frames,
         };
     }
 
