@@ -22,7 +22,17 @@
 | **Video** | Generate, Remix, Get Status | Video generation with Kling, Veo, Sora models |
 | **Audio** | Text-to-Speech, Speech-to-Text | TTS and ASR capabilities |
 | **Agent** | Execute | AI agent with built-in tools (Web Search, OCR, Image/Video Generation) and ReAct loop |
-| **Tools** | Web Search, OCR | Utility tools with advanced filters (site, time, type) |
+| **Tools** | Web Search, OCR, **Image Censor**, **Video Censor**, **VFrame** | Utility tools with content safety and video processing |
+
+### 🆕 What's New in v1.0.0
+
+- **Cloud-Native State Persistence (KodoCheckpointer)**: Store agent conversation state in Qiniu Kodo object storage for production-grade persistence across workflow executions.
+- **Content Safety Tools**:
+  - **Image Censor**: Synchronous content safety audit (pulp, terror, politician detection)
+  - **Video Censor**: Asynchronous video content moderation with job polling
+  - **Video Frame Extract (VFrame)**: Extract frames from video at specific timestamps
+- **Parallel Execution**: Enable concurrent tool execution for improved throughput in batch scenarios.
+- **SDK v0.27.3**: Upgraded to the latest SDK with enhanced Agent capabilities.
 
 ### 📦 Installation
 
@@ -165,7 +175,17 @@ MIT License - see [LICENSE](LICENSE) for details.
 | **Video（视频）** | 生成、混剪、查询状态 | 视频生成（可灵、Veo、Sora） |
 | **Audio（音频）** | 文本转语音、语音转文本 | TTS 和 ASR 能力 |
 | **Agent（智能体）** | 执行 | 支持内置工具（搜索、OCR、图像/视频生成）和 ReAct 循环的 AI 智能体 |
-| **Tools（工具）** | 网络搜索、OCR | 支持高级过滤器（站点、时间、类型）的工具 |
+| **Tools（工具）** | 网络搜索、OCR、**图片审核**、**视频审核**、**视频帧提取** | 内容安全与视频处理工具 |
+
+### 🆕 v1.0.0 新功能
+
+- **云原生状态持久化 (KodoCheckpointer)**：将 Agent 对话状态存储在七牛 Kodo 对象存储中，实现跨工作流执行的生产级持久化。
+- **内容安全工具**：
+  - **图片审核 (Image Censor)**：同步内容安全审核（涉黄、暴力、政治敏感检测）
+  - **视频审核 (Video Censor)**：异步视频内容审核，支持任务轮询
+  - **视频帧提取 (VFrame)**：从视频中提取指定时间戳的帧
+- **并行执行**：支持并发工具执行，提高批量场景的吞吐量。
+- **SDK v0.27.3**：升级至最新 SDK，增强 Agent 能力。
 
 ### 📦 安装
 

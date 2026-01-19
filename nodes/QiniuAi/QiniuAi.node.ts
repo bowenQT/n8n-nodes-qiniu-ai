@@ -8,7 +8,7 @@ import {
     IBinaryKeyData,
 } from 'n8n-workflow';
 
-import { QiniuAI, generateTextWithGraph, APIError, MemoryCheckpointer, Checkpointer } from '@bowenqt/qiniu-ai-sdk';
+import { QiniuAI, generateTextWithGraph, APIError, MemoryCheckpointer, KodoCheckpointer, Checkpointer, CensorScene } from '@bowenqt/qiniu-ai-sdk';
 
 import { chatOperations, chatFields } from './descriptions/ChatDescription';
 import { imageOperations, imageFields } from './descriptions/ImageDescription';
@@ -516,8 +516,14 @@ async function handleAgent(
         temperature?: number;
         imageModel?: string;
         videoModel?: string;
-        checkpointerType?: 'none' | 'memory' | 'redis' | 'postgres';
+        checkpointerType?: 'none' | 'memory' | 'kodo' | 'redis' | 'postgres';
         checkpointerConnection?: string;
+        kodoBucket?: string;
+        kodoAccessKey?: string;
+        kodoSecretKey?: string;
+        kodoPrefix?: string;
+        enableParallel?: boolean;
+        maxConcurrency?: number;
     };
 
     // Build tools record
@@ -647,6 +653,28 @@ async function handleAgent(
             // Use MemoryCheckpointer for in-memory state persistence
             checkpointer = new MemoryCheckpointer({ maxItems: 100 });
             checkpointerInfo = 'memory';
+        } else if (options.checkpointerType === 'kodo') {
+            // KodoCheckpointer for cloud-native state persistence
+            const kodoBucket = options.kodoBucket as string;
+            const kodoAccessKey = options.kodoAccessKey as string;
+            const kodoSecretKey = options.kodoSecretKey as string;
+            const kodoPrefix = (options.kodoPrefix as string) || 'n8n-threads/';
+
+            if (!kodoBucket || !kodoAccessKey || !kodoSecretKey) {
+                throw new NodeOperationError(
+                    context.getNode(),
+                    'Kodo bucket, access key, and secret key are required when using Kodo checkpointer',
+                    { itemIndex }
+                );
+            }
+
+            checkpointer = new KodoCheckpointer({
+                bucket: kodoBucket,
+                accessKey: kodoAccessKey,
+                secretKey: kodoSecretKey,
+                prefix: kodoPrefix,
+            });
+            checkpointerInfo = `kodo:${kodoBucket}/${kodoPrefix}`;
         } else if (options.checkpointerType === 'redis') {
             // Redis requires ioredis client - placeholder for future implementation
             // Users need to provide connection string
@@ -658,6 +686,10 @@ async function handleAgent(
             // TODO: Implement PostgresCheckpointer when pg is available
         }
     }
+
+    // Parallel execution config (read for future use)
+    const _enableParallel = options.enableParallel as boolean || false;
+    const _maxConcurrency = options.maxConcurrency as number || 3;
 
     // Generate threadId if not provided but checkpointer is enabled
     const threadId = options.threadId || (checkpointer ? `thread-${Date.now()}` : undefined);
@@ -690,6 +722,10 @@ async function handleAgent(
         toolsExecuted: result.steps?.filter((s: any) => s.type === 'tool_call').length || 0,
         threadId: threadId || null,
         checkpointer: checkpointerInfo,
+        parallelConfig: {
+            enabled: _enableParallel,
+            maxConcurrency: _maxConcurrency,
+        },
         usage: result.usage
             ? {
                 promptTokens: result.usage.prompt_tokens,
@@ -826,6 +862,85 @@ async function handleTools(
             text: result.text || '',
             blocks: result.blocks || [],
             _raw: result as unknown as IDataObject,
+        };
+    }
+
+    if (operation === 'imageCensor') {
+        const imageUrl = context.getNodeParameter('imageUrl', itemIndex) as string;
+        const scenes = context.getNodeParameter('scenes', itemIndex) as string[];
+
+        const result = await client.censor.image({
+            uri: imageUrl,
+            scenes: scenes as CensorScene[],
+        });
+
+        return {
+            suggestion: result.suggestion,
+            scenes: result.scenes,
+            imageUrl,
+            _raw: result as unknown as IDataObject,
+        };
+    }
+
+    if (operation === 'videoCensor') {
+        const videoUrl = context.getNodeParameter('videoUrl', itemIndex) as string;
+        const scenes = context.getNodeParameter('censorScenes', itemIndex) as string[];
+        const waitForCompletion = context.getNodeParameter('waitForCompletion', itemIndex) as boolean;
+
+        const job = await client.censor.video({
+            uri: videoUrl,
+            scenes: scenes as CensorScene[],
+        });
+
+        if (!waitForCompletion) {
+            return {
+                jobId: job.jobId,
+                status: 'submitted',
+                videoUrl,
+            };
+        }
+
+        // Poll for completion
+        let status = await client.censor.getVideoStatus(job.jobId);
+        while (status.status === 'WAITING' || status.status === 'DOING') {
+            await new Promise(resolve => setTimeout(resolve, 5000));
+            status = await client.censor.getVideoStatus(job.jobId);
+        }
+
+        return {
+            jobId: job.jobId,
+            status: status.status,
+            suggestion: status.suggestion,
+            scenes: status.scenes,
+            videoUrl,
+            _raw: status as unknown as IDataObject,
+        };
+    }
+
+    if (operation === 'vframe') {
+        const videoUrl = context.getNodeParameter('videoUrl', itemIndex) as string;
+        const frameCount = context.getNodeParameter('frameCount', itemIndex) as number;
+        const videoDuration = context.getNodeParameter('videoDuration', itemIndex) as number;
+        const outputWidth = context.getNodeParameter('outputWidth', itemIndex) as number;
+
+        // Calculate uniform offsets
+        const frames: Array<{ offset: number; url: string }> = [];
+        if (videoDuration > 0 && frameCount > 0) {
+            const step = videoDuration / (frameCount + 1);
+            for (let i = 1; i <= frameCount; i++) {
+                const offset = Math.round(step * i);
+                // Build vframe URL: video?vframe/jpg/offset/{offset}/w/{width}
+                const separator = videoUrl.includes('?') ? '|' : '?';
+                const vframeUrl = `${videoUrl}${separator}vframe/jpg/offset/${offset}/w/${outputWidth}`;
+                frames.push({ offset, url: vframeUrl });
+            }
+        }
+
+        return {
+            videoUrl,
+            frameCount,
+            videoDuration,
+            frames,
         };
     }
 

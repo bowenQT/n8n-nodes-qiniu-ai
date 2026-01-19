@@ -214,6 +214,7 @@ export const agentFields: INodeProperties[] = [
                 options: [
                     { name: 'None', value: 'none' },
                     { name: 'Memory', value: 'memory' },
+                    { name: 'Kodo (Cloud)', value: 'kodo' },
                     { name: 'Redis', value: 'redis' },
                     { name: 'PostgreSQL', value: 'postgres' },
                 ],
@@ -235,6 +236,81 @@ export const agentFields: INodeProperties[] = [
                 default: '',
                 placeholder: 'redis://localhost:6379 or postgresql://user:pass@localhost:5432/db',
                 description: 'Connection string for the checkpointer backend',
+            },
+            {
+                displayName: 'Kodo Bucket',
+                name: 'kodoBucket',
+                type: 'string',
+                displayOptions: {
+                    show: {
+                        checkpointerType: ['kodo'],
+                    },
+                },
+                default: '',
+                placeholder: 'my-ai-sessions',
+                description: 'Qiniu Kodo bucket name for state storage',
+            },
+            {
+                displayName: 'Kodo Access Key',
+                name: 'kodoAccessKey',
+                type: 'string',
+                displayOptions: {
+                    show: {
+                        checkpointerType: ['kodo'],
+                    },
+                },
+                default: '',
+                description: 'Qiniu Access Key (AK)',
+            },
+            {
+                displayName: 'Kodo Secret Key',
+                name: 'kodoSecretKey',
+                type: 'string',
+                typeOptions: {
+                    password: true,
+                },
+                displayOptions: {
+                    show: {
+                        checkpointerType: ['kodo'],
+                    },
+                },
+                default: '',
+                description: 'Qiniu Secret Key (SK)',
+            },
+            {
+                displayName: 'Kodo Prefix',
+                name: 'kodoPrefix',
+                type: 'string',
+                displayOptions: {
+                    show: {
+                        checkpointerType: ['kodo'],
+                    },
+                },
+                default: 'n8n-threads/',
+                description: 'Object key prefix for session states',
+            },
+            {
+                displayName: 'Enable Parallel Execution',
+                name: 'enableParallel',
+                type: 'boolean',
+                default: false,
+                description: 'Allow agent to execute multiple tools in parallel',
+            },
+            {
+                displayName: 'Max Concurrency',
+                name: 'maxConcurrency',
+                type: 'number',
+                displayOptions: {
+                    show: {
+                        enableParallel: [true],
+                    },
+                },
+                typeOptions: {
+                    minValue: 1,
+                    maxValue: 10,
+                },
+                default: 3,
+                description: 'Maximum parallel tool executions',
             },
         ],
     },

@@ -1,6 +1,6 @@
 {
     "name": "n8n-nodes-qiniu-ai",
-    "version": "0.7.0",
+    "version": "1.0.0",
     "description": "n8n nodes for Qiniu AI SDK - Chat, Image, Video, Audio, OCR, Agent and more",
     "keywords": [
         "n8n-community-node-package",
@@ -39,7 +39,7 @@
         ]
     },
     "dependencies": {
-        "@bowenqt/qiniu-ai-sdk": "^0.14.0"
+        "@bowenqt/qiniu-ai-sdk": "^0.27.3"
     },
     "devDependencies": {
         "@types/node": "^20.0.0",
