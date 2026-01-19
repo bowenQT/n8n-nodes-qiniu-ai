@@ -516,8 +516,14 @@ async function handleAgent(
         temperature?: number;
         imageModel?: string;
         videoModel?: string;
-        checkpointerType?: 'none' | 'memory' | 'redis' | 'postgres';
+        checkpointerType?: 'none' | 'memory' | 'kodo' | 'redis' | 'postgres';
         checkpointerConnection?: string;
+        kodoBucket?: string;
+        kodoAccessKey?: string;
+        kodoSecretKey?: string;
+        kodoPrefix?: string;
+        enableParallel?: boolean;
+        maxConcurrency?: number;
     };
 
     // Build tools record
@@ -647,6 +653,28 @@ async function handleAgent(
             // Use MemoryCheckpointer for in-memory state persistence
             checkpointer = new MemoryCheckpointer({ maxItems: 100 });
             checkpointerInfo = 'memory';
+        } else if (options.checkpointerType === 'kodo') {
+            // KodoCheckpointer for cloud-native state persistence
+            const kodoBucket = options.kodoBucket as string;
+            const kodoAccessKey = options.kodoAccessKey as string;
+            const kodoSecretKey = options.kodoSecretKey as string;
+            const kodoPrefix = (options.kodoPrefix as string) || 'n8n-threads/';
+
+            if (!kodoBucket || !kodoAccessKey || !kodoSecretKey) {
+                throw new NodeOperationError(
+                    context.getNode(),
+                    'Kodo bucket, access key, and secret key are required when using Kodo checkpointer',
+                    { itemIndex }
+                );
+            }
+
+            checkpointer = new KodoCheckpointer({
+                bucket: kodoBucket,
+                accessKey: kodoAccessKey,
+                secretKey: kodoSecretKey,
+                prefix: kodoPrefix,
+            });
+            checkpointerInfo = `kodo:${kodoBucket}/${kodoPrefix}`;
         } else if (options.checkpointerType === 'redis') {
             // Redis requires ioredis client - placeholder for future implementation
             // Users need to provide connection string
@@ -658,6 +686,10 @@ async function handleAgent(
             // TODO: Implement PostgresCheckpointer when pg is available
         }
     }
+
+    // Parallel execution config (read for future use)
+    const _enableParallel = options.enableParallel as boolean || false;
+    const _maxConcurrency = options.maxConcurrency as number || 3;
 
     // Generate threadId if not provided but checkpointer is enabled
     const threadId = options.threadId || (checkpointer ? `thread-${Date.now()}` : undefined);
