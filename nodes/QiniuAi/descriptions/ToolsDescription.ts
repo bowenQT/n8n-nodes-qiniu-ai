@@ -24,6 +24,24 @@ export const toolsOperations: INodeProperties[] = [
                 description: 'Extract text from images',
                 action: 'OCR',
             },
+            {
+                name: 'Image Censor',
+                value: 'imageCensor',
+                description: 'Check image content safety (pass/review/block)',
+                action: 'Image censor',
+            },
+            {
+                name: 'Video Censor',
+                value: 'videoCensor',
+                description: 'Check video content safety (async job)',
+                action: 'Video censor',
+            },
+            {
+                name: 'Video Frame Extract',
+                value: 'vframe',
+                description: 'Extract frames from video at specific timestamps',
+                action: 'Video frame extract',
+            },
         ],
         default: 'webSearch',
     },
@@ -132,5 +150,155 @@ export const toolsFields: INodeProperties[] = [
         },
         default: 'data',
         description: 'Name of the binary property containing the image',
+    },
+    // Image Censor: Image URL
+    {
+        displayName: 'Image URL',
+        name: 'imageUrl',
+        type: 'string',
+        required: true,
+        displayOptions: {
+            show: {
+                resource: ['tools'],
+                operation: ['imageCensor'],
+            },
+        },
+        default: '',
+        description: 'URL of the image to check (supports qiniu:// URIs)',
+    },
+    // Image Censor: Scenes
+    {
+        displayName: 'Scenes',
+        name: 'scenes',
+        type: 'multiOptions',
+        displayOptions: {
+            show: {
+                resource: ['tools'],
+                operation: ['imageCensor'],
+            },
+        },
+        options: [
+            { name: 'Pulp (Adult Content)', value: 'pulp' },
+            { name: 'Terror (Violence)', value: 'terror' },
+            { name: 'Politician', value: 'politician' },
+        ],
+        default: ['pulp', 'terror', 'politician'],
+        description: 'Content categories to check',
+    },
+    // Video Censor: Video URL
+    {
+        displayName: 'Video URL',
+        name: 'videoUrl',
+        type: 'string',
+        required: true,
+        displayOptions: {
+            show: {
+                resource: ['tools'],
+                operation: ['videoCensor'],
+            },
+        },
+        default: '',
+        description: 'URL of the video to check (supports qiniu:// URIs)',
+    },
+    // Video Censor: Scenes
+    {
+        displayName: 'Scenes',
+        name: 'censorScenes',
+        type: 'multiOptions',
+        displayOptions: {
+            show: {
+                resource: ['tools'],
+                operation: ['videoCensor'],
+            },
+        },
+        options: [
+            { name: 'Pulp (Adult Content)', value: 'pulp' },
+            { name: 'Terror (Violence)', value: 'terror' },
+            { name: 'Politician', value: 'politician' },
+        ],
+        default: ['pulp', 'terror', 'politician'],
+        description: 'Content categories to check',
+    },
+    // Video Censor: Wait for completion
+    {
+        displayName: 'Wait for Completion',
+        name: 'waitForCompletion',
+        type: 'boolean',
+        displayOptions: {
+            show: {
+                resource: ['tools'],
+                operation: ['videoCensor'],
+            },
+        },
+        default: false,
+        description: 'Poll for job completion (may take minutes for long videos)',
+    },
+    // VFrame: Video URL
+    {
+        displayName: 'Video URL',
+        name: 'videoUrl',
+        type: 'string',
+        required: true,
+        displayOptions: {
+            show: {
+                resource: ['tools'],
+                operation: ['vframe'],
+            },
+        },
+        default: '',
+        description: 'URL of the video (supports qiniu:// URIs)',
+    },
+    // VFrame: Frame Count
+    {
+        displayName: 'Frame Count',
+        name: 'frameCount',
+        type: 'number',
+        displayOptions: {
+            show: {
+                resource: ['tools'],
+                operation: ['vframe'],
+            },
+        },
+        typeOptions: {
+            minValue: 1,
+            maxValue: 20,
+        },
+        default: 5,
+        description: 'Number of frames to extract (uniformly distributed)',
+    },
+    // VFrame: Video Duration
+    {
+        displayName: 'Video Duration (seconds)',
+        name: 'videoDuration',
+        type: 'number',
+        displayOptions: {
+            show: {
+                resource: ['tools'],
+                operation: ['vframe'],
+            },
+        },
+        typeOptions: {
+            minValue: 1,
+        },
+        default: 0,
+        description: 'Total video duration (required for uniform sampling)',
+    },
+    // VFrame: Output Width
+    {
+        displayName: 'Output Width',
+        name: 'outputWidth',
+        type: 'number',
+        displayOptions: {
+            show: {
+                resource: ['tools'],
+                operation: ['vframe'],
+            },
+        },
+        typeOptions: {
+            minValue: 100,
+            maxValue: 1920,
+        },
+        default: 640,
+        description: 'Width of extracted frame images (px)',
     },
 ];
